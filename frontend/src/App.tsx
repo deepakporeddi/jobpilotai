@@ -19,6 +19,8 @@ type Resume = {
   created_at: string;
 };
 type AuthMode = "login" | "register";
+type AIAnalysis = { headline?: string; summary?: string; strengths?: string[]; improvement_areas?: string[]; skills_detected?: string[]; suggested_actions?: string[]; evidence_notes?: string[] };
+type JobMatch = { match_score?: number; fit_summary?: string; matching_evidence?: string[]; relevant_skills?: string[]; skills_to_validate?: string[]; experience_gaps?: string[]; resume_improvements?: string[]; caveats?: string[] };
 const API_BASE = (import.meta as ImportMeta & { env: { VITE_API_BASE_URL?: string } }).env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api";
 
 async function api<T>(path: string, token?: string, options: RequestInit = {}): Promise<T> {
@@ -49,8 +51,17 @@ export default function App() {
   const [notice, setNotice] = useState("");
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileDraft, setProfileDraft] = useState("");
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
+  const [jobDescription, setJobDescription] = useState("");
+  const [jobMatch, setJobMatch] = useState<JobMatch | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState("");
 
   const latestResume = useMemo(() => selected || resumes[0] || null, [selected, resumes]);
+
+  useEffect(() => {
+    setAiAnalysis(null); setJobMatch(null); setAiError("");
+  }, [latestResume?.id]);
 
   async function loadResumes(activeToken: string) {
     const data = await api<Resume[]>("/resumes/", activeToken);
@@ -118,6 +129,19 @@ export default function App() {
     } finally { setBusy(false); }
   }
 
+  async function runResumeAnalysis() {
+    if (!latestResume) return;
+    setAiBusy(true); setAiError(""); setAiAnalysis(null);
+    try { const result = await api<{ analysis: AIAnalysis }>("/resumes/ai/analyze/", token, { method: "POST", body: JSON.stringify({ resume_id: latestResume.id }) }); setAiAnalysis(result.analysis); }
+    catch (err) { setAiError((err as Error).message); } finally { setAiBusy(false); }
+  }
+
+  async function runJobMatch() {
+    if (!latestResume) return;
+    setAiBusy(true); setAiError(""); setJobMatch(null);
+    try { const result = await api<{ match: JobMatch }>("/resumes/ai/job-match/", token, { method: "POST", body: JSON.stringify({ resume_id: latestResume.id, job_description: jobDescription }) }); setJobMatch(result.match); }
+    catch (err) { setAiError((err as Error).message); } finally { setAiBusy(false); }
+  }
   function logout() {
     localStorage.removeItem("jobpilot_token"); setToken(""); setResumes([]); setSelected(null); setFile(null);
   }
@@ -166,6 +190,7 @@ export default function App() {
         <div className="side-brand"><span className="brand-mark">J</span><span>jobpilot<span className="brand-ai">.ai</span></span></div>
         <div className="workspace-label">WORKSPACE</div>
         <button className="nav-item active"><span>▤</span> Overview</button>
+        <button className="nav-item" onClick={() => document.getElementById("ai-intelligence")?.scrollIntoView({ behavior: "smooth" })}><span>✳</span> AI Intelligence</button>
         <button className="nav-item" disabled><span>⌕</span> Job discovery <small>SOON</small></button>
         <button className="nav-item" disabled><span>◷</span> Applications <small>SOON</small></button>
         <div className="sidebar-bottom"><div className="user-avatar">{username.slice(0,1).toUpperCase()}</div><div className="user-meta"><strong>{username}</strong><span>Personal workspace</span></div><button className="logout-btn" onClick={logout} title="Sign out">↗</button></div>
@@ -220,6 +245,39 @@ export default function App() {
               <div className="review-footer"><span>AI-generated structure is a starting point. Verify names, dates, skills and achievements.</span><button className="secondary-btn" onClick={() => { setProfileDraft(JSON.stringify(latestResume.extracted_profile, null, 2)); setEditingProfile(true); }}>Edit extracted profile</button></div>
             </>}
           </section>}
+          <section className="panel ai-panel" id="ai-intelligence">
+            <div className="ai-panel-heading"><div><div className="section-kicker">03 / AI CAREER INTELLIGENCE</div><h2>Turn your resume into a strategy.</h2><p>Evidence-grounded insights from your selected resume. No invented skills, achievements or experience.</p></div><span className="ai-orb">✳</span></div>
+            {!latestResume ? <div className="ai-empty">Upload a resume first to unlock AI analysis and job matching.</div> : <>
+              <div className="ai-actions-row"><div><strong>Resume intelligence</strong><small>Strengths, improvement areas and suggested next steps</small></div><button className="primary-btn" onClick={runResumeAnalysis} disabled={aiBusy || !latestResume.extracted_text}>{aiBusy ? "Thinking…" : "Analyze my resume"} <span>✦</span></button></div>
+              {aiAnalysis && <div className="ai-results">
+                <div className="ai-summary"><span>AI CAREER SNAPSHOT</span><h3>{aiAnalysis.headline || "Your resume analysis"}</h3><p>{aiAnalysis.summary || "No summary returned."}</p></div>
+                <div className="ai-result-grid">
+                  <div className="ai-result-card"><h4>Strengths</h4><ul>{(aiAnalysis.strengths || []).map((item, i) => <li key={i}>{item}</li>)}</ul></div>
+                  <div className="ai-result-card"><h4>Improvement areas</h4><ul>{(aiAnalysis.improvement_areas || []).map((item, i) => <li key={i}>{item}</li>)}</ul></div>
+                  <div className="ai-result-card"><h4>Skills detected</h4><div className="ai-chips">{(aiAnalysis.skills_detected || []).map((item, i) => <span key={i}>{item}</span>)}</div></div>
+                  <div className="ai-result-card"><h4>Suggested actions</h4><ul>{(aiAnalysis.suggested_actions || []).map((item, i) => <li key={i}>{item}</li>)}</ul></div>
+                </div>
+                {!!aiAnalysis.evidence_notes?.length && <p className="ai-caveat">Evidence notes: {aiAnalysis.evidence_notes.join(" · ")}</p>}
+              </div>}
+              <div className="ai-divider"/>
+              <div className="job-match-heading"><div><strong>Job description match</strong><small>Paste a job description to see how your documented experience aligns.</small></div><span className="match-label">JOB FIT</span></div>
+              <textarea className="job-description-input" value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} placeholder="Paste the full job description here (at least 100 characters)…" rows={6}/>
+              <div className="job-match-footer"><span>Match score is an estimate, not a hiring prediction.</span><button className="primary-btn" onClick={runJobMatch} disabled={aiBusy || !latestResume.extracted_text || jobDescription.trim().length < 100}>{aiBusy ? "Comparing…" : "Analyze job match"} <span>→</span></button></div>
+              {jobMatch && <div className="match-results">
+                <div className="match-score"><strong>{jobMatch.match_score ?? "—"}<small>%</small></strong><span>Estimated alignment</span></div>
+                <div className="match-summary"><h3>Match overview</h3><p>{jobMatch.fit_summary}</p></div>
+                <div className="ai-result-grid">
+                  <div className="ai-result-card"><h4>Matching evidence</h4><ul>{(jobMatch.matching_evidence || []).map((item, i) => <li key={i}>{item}</li>)}</ul></div>
+                  <div className="ai-result-card"><h4>Skills to validate</h4><ul>{(jobMatch.skills_to_validate || []).map((item, i) => <li key={i}>{item}</li>)}</ul></div>
+                  <div className="ai-result-card"><h4>Experience gaps</h4><ul>{(jobMatch.experience_gaps || []).map((item, i) => <li key={i}>{item}</li>)}</ul></div>
+                  <div className="ai-result-card"><h4>Resume improvements</h4><ul>{(jobMatch.resume_improvements || []).map((item, i) => <li key={i}>{item}</li>)}</ul></div>
+                </div>
+                {!!jobMatch.caveats?.length && <p className="ai-caveat">{jobMatch.caveats.join(" · ")}</p>}
+              </div>}
+            </>}
+            {aiError && <div className="alert error ai-error">{aiError}</div>}
+            <div className="ai-privacy-note">Your AI provider key stays on the backend. Resume text is sent to the provider configured by your administrator when you request an analysis.</div>
+          </section>
           <footer className="page-footer"><span>JOBPILOT AI</span><span>Built around evidence, never invented experience.</span></footer>
         </div>
       </main>
