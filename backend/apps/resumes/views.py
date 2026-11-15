@@ -8,6 +8,3 @@ class MasterResumeListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         return MasterResume.objects.filter(owner=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save()
