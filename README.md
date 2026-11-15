@@ -16,6 +16,7 @@ A multi-user AI-assisted job application workspace. The first milestone is a gen
 - Backend: Django REST Framework
 - Database: SQLite for local quick-start; PostgreSQL when `DATABASE_URL` is configured
 - Resume extraction: PyMuPDF (PDF) and python-docx (DOCX)
+- AI intelligence: configurable OpenAI-compatible chat-completions API; provider credentials remain on the backend
 - Authentication: Django REST Framework token authentication
 
 ## Current functionality
@@ -29,7 +30,7 @@ A multi-user AI-assisted job application workspace. The first milestone is a gen
 - Profile review and editable JSON profile
 - Original resume retained separately from the editable extracted profile
 
-Scanned/image-only PDFs are detected and reported; OCR is not implemented yet. The initial profile extractor is deliberately heuristic and should be reviewed by the user. LLM-based structured extraction, job description analysis, resume generation, and exports are subsequent milestones.
+Scanned/image-only PDFs are detected and reported; OCR is not implemented yet. The initial profile extractor is deliberately heuristic and should be reviewed by the user. AI Intelligence adds evidence-grounded resume analysis and job-description matching when an AI provider is configured. Resume generation and exports remain future milestones.
 
 ## Local development
 
@@ -68,8 +69,10 @@ The frontend runs at http://localhost:5173 and the API at http://127.0.0.1:8000/
 - `POST /api/resumes/` — upload a PDF or DOCX as multipart field `file`
 - `GET /api/resumes/{id}/profile/` — retrieve extracted profile
 - `PATCH /api/resumes/{id}/profile/` — save reviewed profile JSON
+- `POST /api/resumes/ai/analyze/` — analyze an owned resume (`{ "resume_id": 1 }`)
+- `POST /api/resumes/ai/job-match/` — compare an owned resume with a job description (`{ "resume_id": 1, "job_description": "..." }`)
 
-Send `Authorization: Token <token>` for protected endpoints.
+Send `Authorization: Token <token>` for protected endpoints.\n\n### Configure AI provider\n\nSet these values in `backend/.env` (never in the frontend `.env`):\n\n```env\nAI_PROVIDER=openai_compatible\nAI_API_KEY=your-provider-api-key\nAI_BASE_URL=https://api.openai.com/v1\nAI_MODEL=your-enabled-model-name\nAI_TIMEOUT_SECONDS=45\n```\n\n`AI_BASE_URL` can point to an OpenAI-compatible provider or local gateway. Keep the API key server-side. Set `AI_PROVIDER=disabled` to turn AI features off. The frontend calls your Django API and never receives the provider key. Provider/model availability and pricing depend on your chosen service. AI results are suggestions grounded in the uploaded resume; users should verify them.
 
 ## Next milestones
 
