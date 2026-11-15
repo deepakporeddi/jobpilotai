@@ -77,7 +77,7 @@ The frontend runs at http://localhost:5173 and the API at http://127.0.0.1:8000/
 - `POST /api/resumes/ai/job-match/` — create a new match version (`{ "resume_id": 1, "job_description": "..." }`)
 - `GET /api/resumes/ai/job-match/?resume_id=1` — retrieve the latest saved match
 
-Send `Authorization: Token <token>` for protected endpoints. A new successful POST creates a new version; GET returns the latest version for the authenticated owner. Job descriptions are stored with their match history so users can revisit prior comparisons. Deleting a resume cascades to its AI result history and usage records associated with that resume.
+Send `Authorization: Token <token>` for protected endpoints. A new successful POST creates a new version; GET returns the latest version for the authenticated owner. Job descriptions are stored with their match history so users can revisit prior comparisons. Deleting a resume cascades to its AI result history; usage events are retained for audit with the resume reference cleared.
 
 ## Configure AI provider
 
