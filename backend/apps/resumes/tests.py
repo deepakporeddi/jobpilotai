@@ -10,7 +10,10 @@ from .models import AIUsageEvent, MasterResume, ResumeAIAnalysis, ResumeAIJobMat
 
 
 TEST_REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [\n        "rest_framework.authentication.TokenAuthentication",\n        "rest_framework.authentication.SessionAuthentication",\n    ],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
     "DEFAULT_THROTTLE_RATES": {"ai_analysis": "1000/hour", "ai_job_match": "1000/hour"},
 }
 
