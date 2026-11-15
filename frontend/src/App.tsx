@@ -165,13 +165,13 @@ export default function App() {
       <aside className="sidebar">
         <div className="side-brand"><span className="brand-mark">J</span><span>jobpilot<span className="brand-ai">.ai</span></span></div>
         <div className="workspace-label">WORKSPACE</div>
-        <button className="nav-item active"><span>▤</span> Resume intelligence</button>
+        <button className="nav-item active"><span>▤</span> Overview</button>
         <button className="nav-item" disabled><span>⌕</span> Job discovery <small>SOON</small></button>
         <button className="nav-item" disabled><span>◷</span> Applications <small>SOON</small></button>
         <div className="sidebar-bottom"><div className="user-avatar">{username.slice(0,1).toUpperCase()}</div><div className="user-meta"><strong>{username}</strong><span>Personal workspace</span></div><button className="logout-btn" onClick={logout} title="Sign out">↗</button></div>
       </aside>
       <main className="main-content">
-        <header className="top-header"><div><span className="breadcrumb">Workspace</span><span className="crumb-sep">/</span><strong>Resume intelligence</strong></div><div className="header-right"><span className="secure-label"><i /> Private workspace</span><span className="header-avatar">{username.slice(0,1).toUpperCase()}</span></div></header>
+        <header className="top-header"><div><span className="breadcrumb">Workspace</span><span className="crumb-sep">/</span><strong>Overview</strong></div><div className="header-right"><span className="secure-label"><i /> Private workspace</span><span className="header-avatar">{username.slice(0,1).toUpperCase()}</span></div></header>
         <div className="page-wrap">
           <section className="welcome-row dashboard-welcome"><div><div className="eyebrow">WORKSPACE OVERVIEW</div><h1>Your career, <em>in focus.</em></h1><p>A live snapshot of your resume library and candidate profile.</p></div><div className="dashboard-date">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</div></section>
           {(error || notice) && <div className={`alert ${error ? "error" : "success"}`}>{error || notice}<button onClick={() => { setError(""); setNotice(""); }}>×</button></div>}
