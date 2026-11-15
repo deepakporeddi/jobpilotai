@@ -124,6 +124,21 @@ export default function App() {
 
   const profile = latestResume?.extracted_profile || {};
   const info = profile.personal_info || {};
+  const analytics = useMemo(() => {
+    const now = new Date();
+    const months = Array.from({ length: 6 }, (_, index) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+      return { key: date.getFullYear() + '-' + date.getMonth(), label: date.toLocaleDateString(undefined, { month: 'short' }), count: 0 };
+    });
+    resumes.forEach((resume) => {
+      const date = new Date(resume.created_at);
+      const month = months.find((item) => item.key === date.getFullYear() + '-' + date.getMonth());
+      if (month) month.count += 1;
+    });
+    const sections = ['summary', 'experience', 'education', 'skills', 'projects', 'certifications'] as const;
+    const completed = sections.filter((key) => Array.isArray(profile[key]) ? (profile[key] as string[]).length > 0 : Boolean(profile[key])).length;
+    return { months, total: resumes.length, parsed: resumes.filter((item) => item.status === 'parsed' || item.status === 'needs_review').length, attention: resumes.filter((item) => item.status === 'failed' || item.status === 'needs_review').length, skills: profile.skills?.length || 0, completeness: Math.round((completed / sections.length) * 100), maxUploads: Math.max(1, ...months.map((item) => item.count)) };
+  }, [resumes, profile]);
 
   if (!token) return (
     <div className="auth-page">
@@ -158,8 +173,24 @@ export default function App() {
       <main className="main-content">
         <header className="top-header"><div><span className="breadcrumb">Workspace</span><span className="crumb-sep">/</span><strong>Resume intelligence</strong></div><div className="header-right"><span className="secure-label"><i /> Private workspace</span><span className="header-avatar">{username.slice(0,1).toUpperCase()}</span></div></header>
         <div className="page-wrap">
-          <section className="welcome-row"><div><div className="eyebrow">PHASE 01 · RESUME INTELLIGENCE</div><h1>Make every application <em>count.</em></h1><p>Start with your own resume. We'll turn it into a structured, reusable career profile.</p></div><div className="step-pill"><span>01</span> Your profile</div></section>
+          <section className="welcome-row dashboard-welcome"><div><div className="eyebrow">WORKSPACE OVERVIEW</div><h1>Your career, <em>in focus.</em></h1><p>A live snapshot of your resume library and candidate profile.</p></div><div className="dashboard-date">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</div></section>
           {(error || notice) && <div className={`alert ${error ? "error" : "success"}`}>{error || notice}<button onClick={() => { setError(""); setNotice(""); }}>×</button></div>}
+          <section className="analytics-kpis">
+            <article className="metric-card"><div className="metric-top"><span>RESUMES IN LIBRARY</span><i>▤</i></div><strong>{analytics.total}</strong><small>Uploaded versions</small></article>
+            <article className="metric-card"><div className="metric-top"><span>PROFILES EXTRACTED</span><i>✳</i></div><strong>{analytics.parsed}</strong><small>Ready for your review</small></article>
+            <article className="metric-card"><div className="metric-top"><span>NEEDS ATTENTION</span><i>◷</i></div><strong>{analytics.attention}</strong><small>Review or retry extraction</small></article>
+            <article className="metric-card"><div className="metric-top"><span>SKILLS IDENTIFIED</span><i>⌘</i></div><strong>{analytics.skills}</strong><small>From selected profile</small></article>
+          </section>
+          <section className="analytics-grid">
+            <article className="panel chart-panel"><div className="analytics-heading"><div><div className="section-kicker">UPLOAD ACTIVITY</div><h2>Resume uploads</h2><p>Your upload activity over the last six months.</p></div><span className="chart-legend"><i/> Uploads</span></div>
+              <div className="bar-chart" role="img" aria-label="Resume uploads by month">{analytics.months.map((month) => <div className="bar-column" key={month.key}><div className="bar-track"><span className="bar-fill" style={{ height: `${Math.max(month.count ? 12 : 3, (month.count / analytics.maxUploads) * 100)}%` }} title={`${month.count} uploads`}/></div><small>{month.label}</small><b>{month.count}</b></div>)}</div>
+            </article>
+            <article className="panel health-panel"><div className="analytics-heading"><div><div className="section-kicker">PROFILE READINESS</div><h2>Profile completeness</h2><p>Based on the selected resume.</p></div><span className="health-score">{latestResume ? analytics.completeness : 0}%</span></div>
+              <div className="health-progress"><span style={{ width: `${latestResume ? analytics.completeness : 0}%` }}/></div>
+              <div className="health-caption"><strong>{latestResume ? (analytics.completeness >= 80 ? "Looking good" : "Room to improve") : "No profile yet"}</strong><span>{latestResume ? "6 profile sections checked" : "Upload a resume to get started"}</span></div>
+              <div className="health-foot"><span>✦</span> Add missing sections and verify extracted details to strengthen your profile.</div>
+            </article>
+          </section>
           <section className="content-grid">
             <div className="panel upload-panel">
               <div className="panel-top"><div><div className="section-kicker">01 / SOURCE DOCUMENT</div><h2>Upload your master resume</h2><p>Choose the latest version. You can replace it or add more versions anytime.</p></div><span className="panel-icon">↥</span></div>
