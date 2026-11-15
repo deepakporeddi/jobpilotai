@@ -47,6 +47,8 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileDraft, setProfileDraft] = useState("");
 
   const latestResume = useMemo(() => selected || resumes[0] || null, [selected, resumes]);
 
@@ -102,7 +104,7 @@ export default function App() {
     finally { setBusy(false); }
   }
 
-  function logout() {
+  async function saveProfile() {\n    if (!latestResume) return;\n    setBusy(true); setError(""); setNotice("");\n    try {\n      const parsed = JSON.parse(profileDraft) as Profile;\n      const updated = await api<{ id: number; extracted_profile: Profile }>(`/resumes/${latestResume.id}/profile/`, token, { method: "PATCH", body: JSON.stringify({ extracted_profile: parsed }) });\n      const next = { ...latestResume, extracted_profile: updated.extracted_profile };\n      setResumes((current) => current.map((item) => item.id === next.id ? next : item));\n      setSelected(next); setEditingProfile(false); setNotice("Candidate profile saved.");\n    } catch (err) { setError(err instanceof SyntaxError ? "Profile JSON is invalid. Please correct it before saving." : (err as Error).message); }\n    finally { setBusy(false); }\n  }\n\n  function logout() {
     localStorage.removeItem("jobpilot_token"); setToken(""); setResumes([]); setSelected(null); setFile(null);
   }
 
@@ -168,9 +170,9 @@ export default function App() {
             <div className="profile-heading"><div><div className="section-kicker">02 / EXTRACTED INFORMATION</div><h2>Candidate profile</h2><p>Automatically extracted from <strong>{latestResume.original_filename}</strong>. Review everything before using it.</p></div><span className="review-tag">● {latestResume.status === "failed" ? "Needs attention" : "Review required"}</span></div>
             {latestResume.status === "failed" ? <div className="alert error">{latestResume.parse_error || "We couldn't extract text from this file."}</div> : <>
               <div className="profile-stats"><div><span>PERSONAL DETAILS</span><strong>{info.name || "Not detected"}</strong><small>{info.email || "Email not detected"}</small></div><div><span>EXPERIENCE</span><strong>{profile.experience?.length || 0} extracted lines</strong><small>Review roles and dates</small></div><div><span>SKILLS</span><strong>{profile.skills?.length || 0} extracted lines</strong><small>Confirm your skill set</small></div></div>
-              <div className="profile-columns">{(["summary","experience","education","skills","projects","certifications"] as const).map((key) => <div className="profile-section" key={key}><h3>{key}</h3><p>{Array.isArray(profile[key]) ? (profile[key] as string[]).join(" · ") || "No section detected" : profile[key] || "No section detected"}</p></div>)}</div>
+              {editingProfile ? <div className="profile-editor"><label>Edit candidate profile JSON<textarea className="profile-json-editor" value={profileDraft} onChange={(e) => setProfileDraft(e.target.value)} spellCheck={false} /></label><div className="editor-actions"><button className="secondary-btn" onClick={() => setEditingProfile(false)}>Cancel</button><button className="primary-btn" disabled={busy} onClick={saveProfile}>{busy ? "Saving…" : "Save profile"}</button></div></div> : <div className="profile-columns">{(["summary","experience","education","skills","projects","certifications"] as const).map((key) => <div className="profile-section" key={key}><h3>{key}</h3><p>{Array.isArray(profile[key]) ? (profile[key] as string[]).join(" · ") || "No section detected" : profile[key] || "No section detected"}</p></div>)}</div>}
               <details className="raw-text"><summary>View extracted source text</summary><pre>{latestResume.extracted_text}</pre></details>
-              <div className="review-footer"><span>AI-generated structure is a starting point. Verify names, dates, skills and achievements.</span><button className="secondary-btn" disabled>Review & edit profile · Coming next</button></div>
+              <div className="review-footer"><span>AI-generated structure is a starting point. Verify names, dates, skills and achievements.</span><button className="secondary-btn" onClick={() => { setProfileDraft(JSON.stringify(latestResume.extracted_profile, null, 2)); setEditingProfile(true); }}>Edit extracted profile</button></div>
             </>}
           </section>}
           <footer className="page-footer"><span>JOBPILOT AI</span><span>Built around evidence, never invented experience.</span></footer>
