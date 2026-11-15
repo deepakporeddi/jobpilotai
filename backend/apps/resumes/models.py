@@ -13,6 +13,7 @@ class MasterResume(models.Model):
     original_filename = models.CharField(max_length=255)
     content_type = models.CharField(max_length=100, blank=True)
     extracted_text = models.TextField(blank=True)
+    extracted_profile = models.JSONField(default=dict, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.UPLOADED)
     parse_error = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
