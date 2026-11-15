@@ -61,7 +61,19 @@ export default function App() {
 
   useEffect(() => {
     setAiAnalysis(null); setJobMatch(null); setAiError("");
-  }, [latestResume?.id]);
+    if (!token || !latestResume) return;
+    let active = true;
+    const resumeId = latestResume.id;
+    Promise.all([
+      api<{ analysis: AIAnalysis }>(`/resumes/ai/analyze/?resume_id=${resumeId}`, token).catch(() => null),
+      api<{ match: JobMatch }>(`/resumes/ai/job-match/?resume_id=${resumeId}`, token).catch(() => null),
+    ]).then(([analysis, match]) => {
+      if (!active) return;
+      if (analysis) setAiAnalysis(analysis.analysis);
+      if (match) setJobMatch(match.match);
+    });
+    return () => { active = false; };
+  }, [latestResume?.id, token]);
 
   async function loadResumes(activeToken: string) {
     const data = await api<Resume[]>("/resumes/", activeToken);
