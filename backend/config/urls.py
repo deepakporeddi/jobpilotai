@@ -7,10 +7,11 @@ from rest_framework.response import Response
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def health(request):
-    return Response({"status": "ok", "service": "jobpilot-ai-api"})
+    return Response({"status":"ok","service":"jobpilot-ai-api"})
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/health/", health),
+    path("api/auth/", include("apps.accounts.urls")),
     path("api/resumes/", include("apps.resumes.urls")),
 ]
