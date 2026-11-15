@@ -104,7 +104,21 @@ export default function App() {
     finally { setBusy(false); }
   }
 
-  async function saveProfile() {\n    if (!latestResume) return;\n    setBusy(true); setError(""); setNotice("");\n    try {\n      const parsed = JSON.parse(profileDraft) as Profile;\n      const updated = await api<{ id: number; extracted_profile: Profile }>(`/resumes/${latestResume.id}/profile/`, token, { method: "PATCH", body: JSON.stringify({ extracted_profile: parsed }) });\n      const next = { ...latestResume, extracted_profile: updated.extracted_profile };\n      setResumes((current) => current.map((item) => item.id === next.id ? next : item));\n      setSelected(next); setEditingProfile(false); setNotice("Candidate profile saved.");\n    } catch (err) { setError(err instanceof SyntaxError ? "Profile JSON is invalid. Please correct it before saving." : (err as Error).message); }\n    finally { setBusy(false); }\n  }\n\n  function logout() {
+  async function saveProfile() {
+    if (!latestResume) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const parsed = JSON.parse(profileDraft) as Profile;
+      const updated = await api<{ id: number; extracted_profile: Profile }>(`/resumes/${latestResume.id}/profile/`, token, { method: "PATCH", body: JSON.stringify({ extracted_profile: parsed }) });
+      const next = { ...latestResume, extracted_profile: updated.extracted_profile };
+      setResumes((current) => current.map((item) => item.id === next.id ? next : item));
+      setSelected(next); setEditingProfile(false); setNotice("Candidate profile saved.");
+    } catch (err) {
+      setError(err instanceof SyntaxError ? "Profile JSON is invalid. Please correct it before saving." : (err as Error).message);
+    } finally { setBusy(false); }
+  }
+
+  function logout() {
     localStorage.removeItem("jobpilot_token"); setToken(""); setResumes([]); setSelected(null); setFile(null);
   }
 
